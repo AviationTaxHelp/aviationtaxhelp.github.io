@@ -262,8 +262,9 @@
     }).then(function () { zajety = false; });
   }
 
-  $(".ath-sup").addEventListener("click", function () {
-    if (msgs.querySelector(".ath-form")) { zamknijFormularz(); return; }   // drugi klik — wróć do czatu
+  // rodzaj: "" (pytanie / problem), "blad" albo "pomysl" — Program Ulepszeń (19.11): nagroda za potwierdzony błąd / wdrożony pomysł
+  function formularz(rodzaj) {
+    if (msgs.querySelector(".ath-form")) { zamknijFormularz(); if (rodzaj === undefined) return; }   // drugi klik — wróć do czatu
     ustawPismo(false);
     $(".ath-sup").classList.add("on");
     var f = document.createElement("form");
@@ -274,12 +275,29 @@
       '<input type="email" required id="ath-email" autocomplete="email" placeholder="' + T("E-mail do odpowiedzi", "E-mail for the reply") + '">' +
       '<small style="display:block;margin:-4px 0 4px;color:#667">' + T("Podaj adres, na który chcesz dostać odpowiedź — dowolny, nie musi to być adres z ustawień.",
                                                                      "Enter the address where you want the reply — any address, it doesn't have to be the one from your settings.") + "</small>" +
+      '<div class="ath-rodz" style="display:flex;flex-wrap:wrap;gap:4px 12px;margin:2px 0 6px;font-size:13px">' +
+        [["", T("Pytanie / problem", "Question / problem")], ["blad", T("🐞 Błąd", "🐞 Bug")], ["pomysl", T("💡 Pomysł na zmianę", "💡 Idea for a change")]].map(function (o) {
+          return '<label style="display:flex;gap:4px;align-items:center"><input type="radio" name="ath-rodzaj" value="' + o[0] + '"' + ((rodzaj || "") === o[0] ? " checked" : "") + ">" + o[1] + "</label>";
+        }).join("") + "</div>" +
+      '<small class="ath-ulp" style="display:block;margin:-2px 0 6px;color:#667"' + (rodzaj ? "" : " hidden") + ">" +
+        T("Program Ulepszeń: za potwierdzony i naprawiony błąd albo wdrożony pomysł dostaniesz mailem jednorazowy kod rabatowy na licencję (regulamin § 7c).",
+          "Improvement Programme: a confirmed and fixed bug or an implemented idea earns a single-use licence discount code by e-mail (terms § 7c).") + "</small>" +
       '<textarea required rows="4" id="ath-opis" placeholder="' + T("Co się stało? Co klikałeś?", "What happened? What did you click?") + '"></textarea>' +
       '<button type="submit">' + T("Wyślij zgłoszenie", "Send request") + "</button>" +
       '<button type="button" class="ath-wroc">' + T("↩︎ Anuluj — wróć do czatu", "↩︎ Cancel — back to chat") + "</button>";
     msgs.appendChild(f);
     msgs.scrollTop = msgs.scrollHeight;
     f.querySelector(".ath-wroc").addEventListener("click", function () { zamknijFormularz(); ta.focus(); });
+    var opis = f.querySelector("#ath-opis");
+    function podpowiedz() {
+      var r = (f.querySelector('input[name="ath-rodzaj"]:checked') || {}).value || "";
+      f.querySelector(".ath-ulp").hidden = !r;
+      opis.placeholder = r === "pomysl" ? T("Co byś zmienił i dlaczego? Jak to by Ci pomogło?", "What would you change and why? How would it help you?")
+        : r === "blad" ? T("Co nie działa? Co klikałeś i czego się spodziewałeś?", "What doesn't work? What did you click and what did you expect?")
+        : T("Co się stało? Co klikałeś?", "What happened? What did you click?");
+    }
+    f.querySelectorAll('input[name="ath-rodzaj"]').forEach(function (x) { x.addEventListener("change", podpowiedz); });
+    podpowiedz();
     var em = f.querySelector("#ath-email");
     try { em.value = localStorage.getItem("ath-email") || val(C.email) || ""; } catch (e) { em.value = val(C.email) || ""; }
     f.addEventListener("submit", function (e) {
@@ -288,7 +306,8 @@
       var rozm = historia.map(function (h) { return (h.rola === "asystent" ? "A: " : "U: ") + h.tekst; }).join("\n");
       try { localStorage.setItem("ath-email", em.value.trim()); } catch (e) {}
       var zg = { email: em.value.trim(), opis: f.querySelector("#ath-opis").value.trim(),
-        jezyk: String(val(C.jezyk) || "en"), krok: val(C.krok) || "", rozmowa: rozm, rozmowa_id: rozmowa };
+        jezyk: String(val(C.jezyk) || "en"), krok: val(C.krok) || "", rozmowa: rozm, rozmowa_id: rozmowa,
+        rodzaj: (f.querySelector('input[name="ath-rodzaj"]:checked') || {}).value || "" };
       if (sesja) zg.sesja = sesja; else if (tsTok) { zg.turnstile = tsTok; tsZuzyty(); }
       post(C.wsparcie || "/api/wsparcie", zg).then(function (r) {
         if (r.turnstile) { b.disabled = false; tsPrzygotuj(); var m = box.querySelector(".ath-ts"); if (m) m.hidden = false; dodaj("sys", r.msg); return; }
@@ -297,7 +316,13 @@
         if (r.wstepna) dodaj("a", r.wstepna);
       }).catch(function () { b.disabled = false; dodaj("sys", T("Brak połączenia.", "No connection.")); });
     });
-  });
+  }
+  $(".ath-sup").addEventListener("click", function () { formularz(); });
+  // Przyciski „🐞 Zgłoś błąd” / „💡 Zasugeruj zmianę” w panelu: otwierają czat od razu na formularzu z wybranym rodzajem.
+  window.ATH_zglos = function (rodzaj) {
+    if (box.hidden) otworz();
+    formularz(rodzaj === "pomysl" ? "pomysl" : "blad");
+  };
 
   // Otwarcie z innego miejsca strony: powitanie (przewodnik „Zakładam firmę”) albo tekst w polu (QRH: „QRH 2.7 (…): ”).
   window.ATH_otworz = function (powitanie, tekst) {
