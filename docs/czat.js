@@ -82,7 +82,13 @@
     ".ath-tryb[hidden]{display:none}.ath-tryb span{flex:1}.ath-tryb button{border:1px solid #e3c79c;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}" +
     "@media (prefers-color-scheme:dark){.ath-box{background:#121b2b;color:#e8eef6;border-color:#243248}.ath-a{background:#1b2740}.ath-hd{background:linear-gradient(180deg,#162133,#121b2b)}.ath-u{background:linear-gradient(160deg,#dfe8f3,#f3f7fb);color:#0b1220}" +
     ".ath-hd,.ath-ft{border-color:#2a3442}.ath-hd button,.ath-att{background:#202a37;color:#e4e9ef;border-color:#2a3442}" +
-    ".ath-ft textarea,.ath-form input,.ath-form textarea{background:#0f141b;color:#e4e9ef;border-color:#2a3442}.ath-sys{color:#93a1b2}}";
+    ".ath-ft textarea,.ath-form input,.ath-form textarea{background:#0f141b;color:#e4e9ef;border-color:#2a3442}.ath-sys{color:#93a1b2}}" +
+    // 24.11 (Jacek: „Zapytaj asystenta otwiera całą stronę — zrób direct”): z aplikacji (#czat / #zglos) sam czat na cały ekran,
+    // bez strony pod spodem i bez ✕ (zamyka się „Gotowe” w aplikacji)
+    "html.ath-pelny body>*:not(.ath-box){display:none!important}html.ath-pelny,html.ath-pelny body{overflow:hidden;height:100%}" +
+    "html.ath-pelny .ath-box{inset:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;border:0;border-radius:0;box-shadow:none;animation:none;" +
+    "padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html.ath-pelny .ath-x{display:none}" +
+    "html.ath-pelny .ath-msgs{font-size:16px}html.ath-pelny .ath-ft textarea,html.ath-pelny .ath-form input,html.ath-pelny .ath-form textarea{font-size:16px}";
   document.head.appendChild(css);
 
   var btn = document.createElement("button");
@@ -333,4 +339,8 @@
       try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
     }
   };
+  // 23.11: aplikacja na iPhone'a otwiera stronę z „#czat” albo „#zglos” — okienko od razu otwarte
+  if (location.hash === "#czat" || location.hash === "#zglos") document.documentElement.classList.add("ath-pelny");
+  if (location.hash === "#czat") window.ATH_otworz();
+  if (location.hash === "#zglos") window.ATH_zglos("blad");
 })();
